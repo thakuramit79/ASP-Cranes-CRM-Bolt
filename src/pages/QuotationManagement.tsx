@@ -12,7 +12,7 @@ import {
   Truck,
   Users,
   Calendar,
-  DollarSign
+  IndianRupee
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/common/Card';
 import { Input } from '../components/common/Input';
@@ -25,6 +25,7 @@ import { useAuthStore } from '../store/authStore';
 import { Lead } from '../types/lead';
 import { getLeads } from '../services/leadService';
 import { createQuotation } from '../services/quotationService';
+import { formatCurrency } from '../utils/formatters';
 
 const ORDER_TYPES = [
   { value: 'micro', label: 'Micro' },
@@ -298,14 +299,6 @@ export function QuotationManagement() {
   ) => {
     setToast({ show: true, title, variant });
     setTimeout(() => setToast({ show: false, title: '' }), 3000);
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(amount);
   };
 
   if (!user || (user.role !== 'sales_agent' && user.role !== 'admin')) {

@@ -4,7 +4,7 @@ import {
   CalendarClock, 
   ClipboardList, 
   CreditCard, 
-  DollarSign, 
+  IndianRupee, 
   Users 
 } from 'lucide-react';
 import { StatCard } from '../components/dashboard/StatCard';
@@ -13,9 +13,10 @@ import { Button } from '../components/common/Button';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { getLeads } from '../services/leadService';
 import { getQuotationsForLead } from '../services/quotationService';
-import { Lead } from '../types/lead';
+import { Lead, LeadStatus } from '../types/lead';
 import { Quotation } from '../types/quotation';
 import { Link } from 'react-router-dom';
+import { formatCurrency } from '../utils/formatters';
 
 export function SalesAgentDashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -48,7 +49,7 @@ export function SalesAgentDashboard() {
   
   // Count leads by status
   const newLeadsCount = leads.filter(lead => lead.status === 'new').length;
-  const negotiationLeadsCount = leads.filter(lead => lead.status === 'negotiation').length;
+  const inProcessLeadsCount = leads.filter(lead => lead.status === 'in_process').length;
   const wonLeadsCount = leads.filter(lead => lead.status === 'won').length;
   const lostLeadsCount = leads.filter(lead => lead.status === 'lost').length;
   
@@ -74,22 +75,22 @@ export function SalesAgentDashboard() {
           variant="primary"
         />
         <StatCard
-          title="Negotiation"
-          value={negotiationLeadsCount}
+          title="In Process"
+          value={inProcessLeadsCount}
           icon={<Users className="h-5 w-5 text-secondary-600" />}
           variant="secondary"
         />
         <StatCard
           title="Won Deals"
           value={wonLeadsCount}
-          icon={<DollarSign className="h-5 w-5 text-success-600" />}
+          icon={<IndianRupee className="h-5 w-5 text-success-600" />}
           variant="success"
           trend={{ value: 12, isPositive: true }}
         />
         <StatCard
           title="Quotation Value"
-          value={`$${totalQuotationValue.toLocaleString()}`}
-          icon={<CreditCard className="h-5 w-5 text-accent-600" />}
+          value={formatCurrency(totalQuotationValue)}
+          icon={<IndianRupee className="h-5 w-5 text-accent-600" />}
           variant="accent"
         />
       </div>

@@ -5,10 +5,10 @@ import {
   Edit2, 
   Trash2, 
   Tag,
-  DollarSign,
   Clock,
   CheckCircle2,
-  XCircle
+  XCircle,
+  IndianRupee
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/common/Card';
 import { Button } from '../components/common/Button';
@@ -18,6 +18,7 @@ import { TextArea } from '../components/common/TextArea';
 import { Modal } from '../components/common/Modal';
 import { Toast } from '../components/common/Toast';
 import { useAuthStore } from '../store/authStore';
+import { formatCurrency } from '../utils/formatters';
 
 interface Service {
   id: string;
@@ -312,8 +313,8 @@ export function ServicesManagement() {
                       
                       <div className="mt-3 flex items-center gap-4">
                         <div className="flex items-center gap-1 text-primary-600">
-                          <DollarSign className="h-4 w-4" />
-                          <span className="font-medium">{service.baseRate}</span>
+                          <IndianRupee className="h-4 w-4" />
+                          <span className="font-medium">{formatCurrency(service.baseRate)}</span>
                         </div>
                         <div className="flex items-center gap-1 text-gray-500">
                           <Clock className="h-4 w-4" />

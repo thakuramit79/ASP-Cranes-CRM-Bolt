@@ -6,7 +6,8 @@ import {
   ArrowRight,
   Search,
   Plus,
-  Building2
+  Building2,
+  IndianRupee
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
@@ -17,6 +18,7 @@ import { Toast } from '../components/common/Toast';
 import { useAuthStore } from '../store/authStore';
 import { Deal } from '../types/deal';
 import { getDeals, updateDealStage } from '../services/dealService';
+import { formatCurrency } from '../utils/formatters';
 
 const STAGE_OPTIONS = [
   { value: 'qualification', label: 'Qualification' },
@@ -146,8 +148,8 @@ export function Deals() {
                 
                 <div className="space-y-3">
                   <div className="flex items-center text-gray-600">
-                    <DollarSign className="w-5 h-5 mr-2" />
-                    <span>${deal.value.toLocaleString()}</span>
+                    <IndianRupee className="w-5 h-5 mr-2" />
+                    <span>{formatCurrency(deal.value)}</span>
                   </div>
                   
                   <div className="flex items-center text-gray-600">

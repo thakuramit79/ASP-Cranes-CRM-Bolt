@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, 
-  DollarSign, 
+  IndianRupee, 
   Truck, 
   Users, 
   Settings, 
@@ -17,6 +17,7 @@ import { getJobs, getAllEquipment, getAllOperators } from '../services/jobServic
 import { Lead } from '../types/lead';
 import { Job } from '../types/job';
 import { Link } from 'react-router-dom';
+import { formatCurrency } from '../utils/formatters';
 
 export function AdminDashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -52,7 +53,7 @@ export function AdminDashboard() {
   // Calculate KPIs
   const totalRevenue = jobs
     .filter(job => job.status === 'completed')
-    .length * 5000; // Mock average revenue per job
+    .length * 50000; // Mock average revenue per job in INR
   
   const equipmentUtilization = jobs.filter(
     job => job.status === 'in_progress' || job.status === 'scheduled'
@@ -71,8 +72,8 @@ export function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Revenue"
-          value={`$${totalRevenue.toLocaleString()}`}
-          icon={<DollarSign className="h-5 w-5 text-primary-600" />}
+          value={formatCurrency(totalRevenue)}
+          icon={<IndianRupee className="h-5 w-5 text-primary-600" />}
           variant="primary"
           trend={{ value: 15, isPositive: true }}
         />

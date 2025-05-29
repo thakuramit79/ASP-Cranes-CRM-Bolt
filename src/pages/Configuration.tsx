@@ -7,7 +7,8 @@ import {
   HelpCircle,
   AlertCircle,
   Check,
-  X
+  X,
+  IndianRupee
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/common/Card';
 import { Button } from '../components/common/Button';
@@ -15,6 +16,7 @@ import { Input } from '../components/common/Input';
 import { Modal } from '../components/common/Modal';
 import { Toast } from '../components/common/Toast';
 import { useAuthStore } from '../store/authStore';
+import { formatCurrency, formatPercentage } from '../utils/formatters';
 
 interface ConfigParam {
   id: string;
@@ -32,19 +34,19 @@ const DEFAULT_CONFIG: ConfigParam[] = [
     id: 'tower_crane_rate',
     name: 'Tower Crane Base Rate',
     description: 'Standard hourly rate for tower crane rental',
-    value: '250',
+    value: '2500',
     type: 'currency',
     category: 'Equipment Rates',
-    defaultValue: '250',
+    defaultValue: '2500',
   },
   {
     id: 'mobile_crane_rate',
     name: 'Mobile Crane Base Rate',
     description: 'Standard hourly rate for mobile crane rental',
-    value: '180',
+    value: '1800',
     type: 'currency',
     category: 'Equipment Rates',
-    defaultValue: '180',
+    defaultValue: '1800',
   },
   {
     id: 'shift_duration',
@@ -59,10 +61,10 @@ const DEFAULT_CONFIG: ConfigParam[] = [
     id: 'operator_wage',
     name: 'Operator Wage',
     description: 'Base wage per shift for crane operators',
-    value: '200',
+    value: '2000',
     type: 'currency',
     category: 'Labor Costs',
-    defaultValue: '200',
+    defaultValue: '2000',
   },
   {
     id: 'fuel_multiplier',
@@ -86,19 +88,19 @@ const DEFAULT_CONFIG: ConfigParam[] = [
     id: 'food_allowance',
     name: 'Food Allowance',
     description: 'Daily food allowance per person',
-    value: '25',
+    value: '250',
     type: 'currency',
     category: 'Labor Costs',
-    defaultValue: '25',
+    defaultValue: '250',
   },
   {
     id: 'accommodation',
     name: 'Accommodation Rate',
     description: 'Daily accommodation cost per person',
-    value: '100',
+    value: '1000',
     type: 'currency',
     category: 'Labor Costs',
-    defaultValue: '100',
+    defaultValue: '1000',
   },
   {
     id: 'commercial_charge',
@@ -245,9 +247,9 @@ export function Configuration() {
 
     switch (type) {
       case 'currency':
-        return `$${num.toFixed(2)}`;
+        return formatCurrency(num);
       case 'percentage':
-        return `${num}%`;
+        return formatPercentage(num);
       default:
         return value;
     }

@@ -18,7 +18,7 @@ const calculateTotalRent = (formData: any): number => {
   // Resource costs
   const foodResources = Number(formData.foodResources) || 0;
   const accomResources = Number(formData.accomResources) || 0;
-  const resourceCosts = ((foodResources * 25) + (accomResources * 100)) * days;
+  const resourceCosts = ((foodResources * 250) + (accomResources * 1000)) * days;
   
   // Usage and elongation factors
   const usageFactor = formData.usage === 'heavy' ? 1.2 : 1;
@@ -26,7 +26,7 @@ const calculateTotalRent = (formData: any): number => {
   
   // Trailer cost based on distance
   const distance = Number(formData.siteDistance) || 0;
-  const trailerCost = distance * 50;
+  const trailerCost = distance * 500; // Increased rate per km for Indian context
   
   // Risk adjustment
   const riskAdjustment = calculateRiskAdjustment(basicRent, formData.riskFactor);
@@ -57,10 +57,10 @@ const calculateTotalRent = (formData: any): number => {
 
 const getMachineBaseRate = (type: string): number => {
   switch (type) {
-    case 'mobile_crane': return 1500;
-    case 'tower_crane': return 2500;
-    case 'crawler_crane': return 3000;
-    case 'pick_and_carry': return 1200;
+    case 'mobile_crane': return 15000;
+    case 'tower_crane': return 25000;
+    case 'crawler_crane': return 30000;
+    case 'pick_and_carry': return 12000;
     default: return 0;
   }
 };
