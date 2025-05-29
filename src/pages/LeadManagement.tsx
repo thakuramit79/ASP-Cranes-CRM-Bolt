@@ -327,7 +327,7 @@ export function LeadManagement() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Location
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[130px]">
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -366,7 +366,7 @@ export function LeadManagement() {
                           options={LEAD_STATUS_OPTIONS}
                           value={lead.status}
                           onChange={(value) => handleStatusChange(lead.id, value as LeadStatus)}
-                          className="w-40"
+                          className="w-full min-w-[130px] text-sm py-1"
                         />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

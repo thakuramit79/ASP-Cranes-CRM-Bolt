@@ -161,7 +161,7 @@ export function QuotationManagement() {
   const fetchLeads = async () => {
     try {
       const data = await getLeads();
-      setLeads(data.filter(lead => lead.status === 'won'));
+      setLeads(data.filter(lead => lead.status === 'won' || lead.status === 'qualified'));
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching leads:', error);
