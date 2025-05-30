@@ -274,6 +274,11 @@ export function QuotationManagement() {
       return;
     }
 
+    if (!selectedEquipment) {
+      showToast('Please select equipment', 'error');
+      return;
+    }
+
     try {
       const quotationData = {
         leadId: selectedLead.id,
@@ -374,6 +379,16 @@ export function QuotationManagement() {
                   }
                   onEquipmentChange={handleEquipmentChange}
                 />
+                {selectedEquipment && (
+                  <div className="mt-2 p-3 bg-gray-50 rounded-md">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-600">Base Rate (per hour)</span>
+                      <span className="text-sm font-semibold text-primary-600">
+                        {formatCurrency(selectedEquipment.baseRate)}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -519,6 +534,22 @@ export function QuotationManagement() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
+                  {/* Base Rate */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Base Rate (per hour)</span>
+                      <span>{formatCurrency(selectedEquipment?.baseRate || 0)}</span>
+                    </div>
+                  </div>
+
+                  {/* Working Hours */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Total Working Hours</span>
+                      <span>{calculations.totalHours}</span>
+                    </div>
+                  </div>
+
                   {/* Working Cost */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
