@@ -150,23 +150,26 @@ export function QuotationManagement() {
   const handleEquipmentChange = async (equipment: Equipment | null) => {
     setSelectedEquipment(equipment);
     if (equipment) {
-      setFormData(prev => ({
-        ...prev,
-        baseRate: equipment.baseRate.toString(),
-        runningCostPerKm: equipment.runningCostPerKm.toString(),
-      }));
+      const equipmentDetails = await getEquipmentById(equipment.id);
+      if (equipmentDetails) {
+        setFormData(prev => ({
+          ...prev,
+          equipmentId: equipment.id,
+          baseRate: equipmentDetails.baseRate.toString(),
+          runningCostPerKm: equipmentDetails.runningCostPerKm.toString(),
+        }));
+      }
     }
   };
 
   const calculateQuotation = () => {
     if (!selectedEquipment) return;
 
-    const baseRate = selectedEquipment.baseRate;
+    const baseRate = Number(formData.baseRate) || selectedEquipment.baseRate;
     const workingHours = calculateWorkingHours();
     const workingCost = baseRate * workingHours;
     
     const usageFactor = formData.usage === 'heavy' ? 1.2 : 1;
-    
     const elongationCost = workingCost * 0.15;
     
     const foodAccomCost = (
@@ -175,7 +178,6 @@ export function QuotationManagement() {
     );
     
     const trailerCost = calculateTrailerCost();
-    
     const riskAdjustment = calculateRiskAdjustment(workingCost);
     
     const extraCharges = (
@@ -194,7 +196,6 @@ export function QuotationManagement() {
     );
     
     const gstAmount = formData.billing === 'gst' ? subtotal * 0.18 : 0;
-    
     const totalAmount = subtotal + gstAmount;
     
     setCalculations({
@@ -229,8 +230,8 @@ export function QuotationManagement() {
 
   const calculateTrailerCost = (): number => {
     const distance = Number(formData.siteDistance);
-    const baseTrailerRate = 50;
-    return distance * baseTrailerRate;
+    const runningCost = Number(formData.runningCostPerKm) || selectedEquipment?.runningCostPerKm || 0;
+    return distance * runningCost;
   };
 
   const calculateRiskAdjustment = (baseAmount: number): number => {
@@ -359,7 +360,6 @@ export function QuotationManagement() {
               </CardContent>
             </Card>
 
-            {/* H3 - Hours */}
             <Card>
               <CardHeader>
                 <CardTitle>Working Hours</CardTitle>
@@ -401,7 +401,6 @@ export function QuotationManagement() {
               </CardContent>
             </Card>
 
-            {/* H4 - Accommodation */}
             <Card>
               <CardHeader>
                 <CardTitle>Accommodation</CardTitle>
@@ -422,7 +421,6 @@ export function QuotationManagement() {
               </CardContent>
             </Card>
 
-            {/* Additional sections */}
             <Card>
               <CardHeader>
                 <CardTitle>Additional Parameters</CardTitle>
@@ -493,7 +491,6 @@ export function QuotationManagement() {
             </Card>
           </div>
 
-          {/* Summary Section - Fixed on Right Side */}
           <div className="space-y-6">
             <Card className="sticky top-0">
               <CardHeader>
@@ -501,7 +498,6 @@ export function QuotationManagement() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {/* Base Rate */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Base Rate (per hour)</span>
@@ -509,7 +505,6 @@ export function QuotationManagement() {
                     </div>
                   </div>
 
-                  {/* Working Hours */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Total Working Hours</span>
@@ -517,7 +512,6 @@ export function QuotationManagement() {
                     </div>
                   </div>
 
-                  {/* Working Cost */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Working Cost</span>
@@ -533,7 +527,6 @@ export function QuotationManagement() {
                     </div>
                   </div>
 
-                  {/* Elongation */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Elongation</span>
@@ -549,7 +542,6 @@ export function QuotationManagement() {
                     </div>
                   </div>
 
-                  {/* Trailer Cost */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Trailer Cost</span>
@@ -565,7 +557,6 @@ export function QuotationManagement() {
                     </div>
                   </div>
 
-                  {/* Food & Accommodation */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Food & Accommodation</span>
@@ -581,7 +572,6 @@ export function QuotationManagement() {
                     </div>
                   </div>
 
-                  {/* Usage Load Factor */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Usage Load Factor</span>
@@ -597,7 +587,6 @@ export function QuotationManagement() {
                     </div>
                   </div>
 
-                  {/* Extra Charges */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Extra Charges</span>
@@ -613,7 +602,6 @@ export function QuotationManagement() {
                     </div>
                   </div>
 
-                  {/* Risk Adjustment */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Risk Adjustment</span>
@@ -629,7 +617,6 @@ export function QuotationManagement() {
                     </div>
                   </div>
 
-                  {/* GST */}
                   {calculations.gstAmount > 0 && (
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
@@ -647,7 +634,6 @@ export function QuotationManagement() {
                     </div>
                   )}
 
-                  {/* Total Amount */}
                   <div className="pt-4 mt-4 border-t border-gray-200">
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-semibold">Total Amount</span>
@@ -675,7 +661,6 @@ export function QuotationManagement() {
         </div>
       </Modal>
 
-      {/* Toast Notifications */}
       {toast.show && (
         <Toast
           title={toast.title}
