@@ -18,6 +18,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/common/C
 import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
 import { Select } from '../components/common/Select';
+import { TextArea } from '../components/common/TextArea';
 import { Modal } from '../components/common/Modal';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Toast } from '../components/common/Toast';
@@ -27,6 +28,7 @@ import { Lead } from '../types/lead';
 import { Equipment } from '../types/equipment';
 import { getLeads } from '../services/leadService';
 import { createQuotation } from '../services/quotationService';
+import { getEquipmentById } from '../services/jobService';
 import { formatCurrency } from '../utils/formatters';
 
 const ORDER_TYPES = [
@@ -85,54 +87,33 @@ export function QuotationManagement() {
     variant?: 'success' | 'error' | 'warning';
   }>({ show: false, title: '' });
 
-  // Form state
   const [formData, setFormData] = useState({
-    // H1 - Order Type
     orderType: 'micro',
-    
-    // H2 - Type of Machine
     machineType: '',
     equipmentId: '',
-    
-    // H3 - Hours
+    baseRate: '',
+    runningCostPerKm: '',
     workingHours: '',
     dayNight: 'day',
     shift: 'single',
     sundayWorking: 'no',
-    
-    // H4 - Accommodation
     foodResources: '',
     accomResources: '',
-    
-    // H5 - Usage
     usage: 'light',
-    
-    // H6 - Mob - Demob
     siteDistance: '',
     trailerCost: '',
     mobRelaxation: '',
-    
-    // H7 - Fuel
     workingCost: '',
     elongation: '',
-    
-    // H8 - Commercial
     dealType: 'no_advance',
     extraCharge: '',
     billing: 'gst',
-    
-    // H9 - Risk Factor
     riskFactor: 'low',
-    
-    // H10 - Incidental Charge
     incidentalCharges: '',
-    
-    // H11 - Other Factors
     otherFactors: '',
     otherFactorsCharge: '',
   });
 
-  // Calculated values
   const [calculations, setCalculations] = useState({
     baseRate: 0,
     totalHours: 0,
@@ -166,48 +147,43 @@ export function QuotationManagement() {
     }
   };
 
-  const handleEquipmentChange = (equipment: Equipment | null) => {
+  const handleEquipmentChange = async (equipment: Equipment | null) => {
     setSelectedEquipment(equipment);
-    setFormData(prev => ({
-      ...prev,
-      equipmentId: equipment?.id || '',
-    }));
+    if (equipment) {
+      setFormData(prev => ({
+        ...prev,
+        baseRate: equipment.baseRate.toString(),
+        runningCostPerKm: equipment.runningCostPerKm.toString(),
+      }));
+    }
   };
 
   const calculateQuotation = () => {
     if (!selectedEquipment) return;
 
-    // Base calculations
     const baseRate = selectedEquipment.baseRate;
     const workingHours = calculateWorkingHours();
     const workingCost = baseRate * workingHours;
     
-    // Usage factor
     const usageFactor = formData.usage === 'heavy' ? 1.2 : 1;
     
-    // Elongation cost
     const elongationCost = workingCost * 0.15;
     
-    // Food & Accommodation
     const foodAccomCost = (
       (Number(formData.foodResources) * 25 + Number(formData.accomResources) * 100) * 
       getDays()
     );
     
-    // Trailer cost based on distance
     const trailerCost = calculateTrailerCost();
     
-    // Risk adjustment
     const riskAdjustment = calculateRiskAdjustment(workingCost);
     
-    // Extra charges
     const extraCharges = (
       Number(formData.extraCharge) +
       Number(formData.incidentalCharges) +
       Number(formData.otherFactorsCharge)
     );
     
-    // Subtotal
     const subtotal = (
       workingCost * usageFactor +
       elongationCost +
@@ -217,10 +193,8 @@ export function QuotationManagement() {
       extraCharges
     );
     
-    // GST
     const gstAmount = formData.billing === 'gst' ? subtotal * 0.18 : 0;
     
-    // Total
     const totalAmount = subtotal + gstAmount;
     
     setCalculations({
@@ -255,7 +229,7 @@ export function QuotationManagement() {
 
   const calculateTrailerCost = (): number => {
     const distance = Number(formData.siteDistance);
-    const baseTrailerRate = 50; // per km
+    const baseTrailerRate = 50;
     return distance * baseTrailerRate;
   };
 
@@ -338,7 +312,6 @@ export function QuotationManagement() {
         </Button>
       </div>
 
-      {/* Quotation Creation Modal */}
       <Modal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
@@ -346,29 +319,10 @@ export function QuotationManagement() {
         size="xl"
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Form Section */}
           <div className="space-y-6">
-            {/* H1 - Order Type */}
             <Card>
               <CardHeader>
-                <CardTitle>Order Type</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Select
-                  label="Order Type"
-                  options={ORDER_TYPES}
-                  value={formData.orderType}
-                  onChange={(value) => setFormData(prev => ({ ...prev, orderType: value }))}
-                />
-              </CardContent>
-            </Card>
-
-            {/* H2 - Type of Machine */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold">
-                  H2 - Type of Machine
-                </CardTitle>
+                <CardTitle>Equipment Selection</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <EquipmentSelection
@@ -379,14 +333,27 @@ export function QuotationManagement() {
                   }
                   onEquipmentChange={handleEquipmentChange}
                 />
+
                 {selectedEquipment && (
-                  <div className="mt-2 p-3 bg-gray-50 rounded-md">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-600">Base Rate (per hour)</span>
-                      <span className="text-sm font-semibold text-primary-600">
-                        {formatCurrency(selectedEquipment.baseRate)}
-                      </span>
-                    </div>
+                  <div className="mt-4 space-y-4">
+                    <Input
+                      label="Base Rate per Hour (₹)"
+                      type="number"
+                      value={formData.baseRate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, baseRate: e.target.value }))}
+                      helperText="Auto-filled from equipment data. Can be adjusted if needed."
+                    />
+
+                    <Input
+                      label="Running Cost per KM (₹)"
+                      type="number"
+                      value={formData.runningCostPerKm}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        runningCostPerKm: e.target.value 
+                      }))}
+                      helperText="Auto-filled from equipment data. Can be adjusted if needed."
+                    />
                   </div>
                 )}
               </CardContent>
