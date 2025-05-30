@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Settings, Calendar, Weight, Plane as Crane, DollarSign, Truck } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Settings, Calendar, Weight, Plane as Crane, IndianRupee, Truck } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
@@ -9,13 +9,21 @@ import { Modal } from '../components/common/Modal';
 import { Toast } from '../components/common/Toast';
 import { Badge } from '../components/common/Badge';
 import { useAuthStore } from '../store/authStore';
-import { Equipment } from '../types/equipment';
+import { Equipment, CraneCategory } from '../types/equipment';
 import { getEquipment, createEquipment, updateEquipment, deleteEquipment } from '../services/firestore/equipmentService';
+import { formatCurrency } from '../utils/formatters';
 
 const STATUS_OPTIONS = [
   { value: 'available', label: 'Available' },
   { value: 'in_use', label: 'In Use' },
   { value: 'maintenance', label: 'Maintenance' },
+];
+
+const CATEGORY_OPTIONS = [
+  { value: 'mobile_crane', label: 'Mobile Crane' },
+  { value: 'tower_crane', label: 'Tower Crane' },
+  { value: 'crawler_crane', label: 'Crawler Crane' },
+  { value: 'pick_and_carry_crane', label: 'Pick & Carry Crane' },
 ];
 
 export function EquipmentManagement() {
@@ -24,6 +32,7 @@ export function EquipmentManagement() {
   const [filteredEquipment, setFilteredEquipment] = useState<Equipment[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | Equipment['status']>('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | CraneCategory>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -37,6 +46,7 @@ export function EquipmentManagement() {
 
   const [formData, setFormData] = useState({
     name: '',
+    category: 'mobile_crane' as CraneCategory,
     manufacturingDate: '',
     registrationDate: '',
     maxLiftingCapacity: '',
@@ -53,7 +63,7 @@ export function EquipmentManagement() {
 
   useEffect(() => {
     filterEquipment();
-  }, [equipment, searchTerm, statusFilter]);
+  }, [equipment, searchTerm, statusFilter, categoryFilter]);
 
   const fetchEquipment = async () => {
     try {
@@ -77,6 +87,10 @@ export function EquipmentManagement() {
 
     if (statusFilter !== 'all') {
       filtered = filtered.filter(item => item.status === statusFilter);
+    }
+
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(item => item.category === categoryFilter);
     }
 
     setFilteredEquipment(filtered);
@@ -161,6 +175,7 @@ export function EquipmentManagement() {
   const resetForm = () => {
     setFormData({
       name: '',
+      category: 'mobile_crane' as CraneCategory,
       manufacturingDate: '',
       registrationDate: '',
       maxLiftingCapacity: '',
@@ -205,6 +220,16 @@ export function EquipmentManagement() {
 
           <Select
             options={[
+              { value: 'all', label: 'All Categories' },
+              ...CATEGORY_OPTIONS,
+            ]}
+            value={categoryFilter}
+            onChange={(value) => setCategoryFilter(value as 'all' | CraneCategory)}
+            className="w-48"
+          />
+
+          <Select
+            options={[
               { value: 'all', label: 'All Status' },
               ...STATUS_OPTIONS,
             ]}
@@ -239,13 +264,18 @@ export function EquipmentManagement() {
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-semibold text-lg">{item.name}</h3>
-                    <Badge variant={
-                      item.status === 'available' ? 'success' :
-                      item.status === 'in_use' ? 'warning' :
-                      'error'
-                    }>
-                      {item.status}
-                    </Badge>
+                    <div className="flex gap-2 flex-wrap">
+                      <Badge variant="secondary">
+                        {CATEGORY_OPTIONS.find(opt => opt.value === item.category)?.label}
+                      </Badge>
+                      <Badge variant={
+                        item.status === 'available' ? 'success' :
+                        item.status === 'in_use' ? 'warning' :
+                        'error'
+                      }>
+                        {item.status}
+                      </Badge>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -255,6 +285,7 @@ export function EquipmentManagement() {
                         setSelectedEquipment(item);
                         setFormData({
                           name: item.name,
+                          category: item.category,
                           manufacturingDate: item.manufacturingDate,
                           registrationDate: item.registrationDate,
                           maxLiftingCapacity: item.maxLiftingCapacity.toString(),
@@ -300,12 +331,12 @@ export function EquipmentManagement() {
                     <span>{item.unladenWeight} tons unladen</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-600">
-                    <DollarSign className="h-4 w-4" />
-                    <span>${item.baseRate}/hr base rate</span>
+                    <IndianRupee className="h-4 w-4" />
+                    <span>{formatCurrency(item.baseRate)}/hr base rate</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-600">
                     <Truck className="h-4 w-4" />
-                    <span>${item.runningCostPerKm}/km running cost</span>
+                    <span>{formatCurrency(item.runningCostPerKm)}/km running cost</span>
                   </div>
                 </div>
 
@@ -333,6 +364,14 @@ export function EquipmentManagement() {
             label="Equipment Name"
             value={formData.name}
             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            required
+          />
+
+          <Select
+            label="Category"
+            options={CATEGORY_OPTIONS}
+            value={formData.category}
+            onChange={(value) => setFormData(prev => ({ ...prev, category: value as CraneCategory }))}
             required
           />
 
@@ -376,7 +415,7 @@ export function EquipmentManagement() {
 
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Base Rate (per hour)"
+              label="Base Rate per hour (₹)"
               type="number"
               step="0.01"
               value={formData.baseRate}
@@ -385,7 +424,7 @@ export function EquipmentManagement() {
             />
 
             <Input
-              label="Running Cost (per km)"
+              label="Running Cost per km (₹)"
               type="number"
               step="0.01"
               value={formData.runningCostPerKm}

@@ -24,9 +24,11 @@ import { Toast } from '../components/common/Toast';
 import { CustomerSelectionModal } from '../components/common/CustomerSelectionModal';
 import { useAuthStore } from '../store/authStore';
 import { Lead, LeadStatus, Customer } from '../types/lead';
-import { getLeads, createLead, updateLeadStatus } from '../services/firestore/leadService';
+import { getLeads, createLead, updateLeadStatus, updateLeadAssignment } from '../services/firestore/leadService';
 import { createDeal } from '../services/firestore/dealService';
 import { useNavigate } from 'react-router-dom';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 const LEAD_STATUS_OPTIONS = [
   { value: 'new', label: 'New' },
@@ -53,6 +55,7 @@ export function LeadManagement() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [salesAgents, setSalesAgents] = useState<{ id: string; name: string; }[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'all'>('all');
@@ -78,10 +81,12 @@ export function LeadManagement() {
     rentalDays: '',
     shiftTiming: 'day',
     notes: '',
+    assignedTo: '',
   });
 
   useEffect(() => {
     fetchLeads();
+    fetchSalesAgents();
   }, []);
 
   useEffect(() => {
@@ -97,6 +102,22 @@ export function LeadManagement() {
       console.error('Error fetching leads:', error);
       showToast('Error fetching leads', 'error');
       setIsLoading(false);
+    }
+  };
+
+  const fetchSalesAgents = async () => {
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('role', '==', 'sales_agent'));
+      const snapshot = await getDocs(q);
+      const agents = snapshot.docs.map(doc => ({
+        id: doc.id,
+        name: doc.data().name,
+      }));
+      setSalesAgents(agents);
+    } catch (error) {
+      console.error('Error fetching sales agents:', error);
+      showToast('Error fetching sales agents', 'error');
     }
   };
 
@@ -143,6 +164,11 @@ export function LeadManagement() {
     }
 
     try {
+      // If user is a sales agent, automatically assign the lead to them
+      const assignedTo = user?.role === 'sales_agent' ? user.id : formData.assignedTo;
+      const assignedToName = user?.role === 'sales_agent' ? user.name : 
+        salesAgents.find(agent => agent.id === formData.assignedTo)?.name || '';
+
       const newLead = await createLead({
         customerName: formData.fullName,
         companyName: formData.companyName,
@@ -154,7 +180,8 @@ export function LeadManagement() {
         rentalDays: parseInt(formData.rentalDays),
         shiftTiming: formData.shiftTiming,
         status: 'new',
-        assignedTo: user?.id || '',
+        assignedTo,
+        assignedToName,
         notes: formData.notes,
       });
 
@@ -238,6 +265,29 @@ export function LeadManagement() {
     setIsCustomerSelectionModalOpen(true);
   };
 
+  const handleAssignmentChange = async (leadId: string, salesAgentId: string) => {
+    try {
+      const selectedAgent = salesAgents.find(agent => agent.id === salesAgentId);
+      if (!selectedAgent) {
+        showToast('Selected sales agent not found', 'error');
+        return;
+      }
+
+      const updatedLead = await updateLeadAssignment(leadId, salesAgentId, selectedAgent.name);
+      if (updatedLead) {
+        setLeads(prev => 
+          prev.map(lead => 
+            lead.id === leadId ? updatedLead : lead
+          )
+        );
+        showToast('Lead assignment updated', 'success');
+      }
+    } catch (error) {
+      console.error('Error updating lead assignment:', error);
+      showToast('Error updating lead assignment', 'error');
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       fullName: '',
@@ -250,6 +300,7 @@ export function LeadManagement() {
       rentalDays: '',
       shiftTiming: 'day',
       notes: '',
+      assignedTo: '',
     });
   };
 
@@ -327,13 +378,13 @@ export function LeadManagement() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Location
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[130px]">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created
+                      Assigned To
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -342,46 +393,60 @@ export function LeadManagement() {
                   {filteredLeads.map((lead) => (
                     <tr key={lead.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-gray-900">
-                          {lead.customerName}
-                        </div>
-                        {lead.companyName && (
-                          <div className="text-sm text-gray-500">
-                            {lead.companyName}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">
-                          {lead.serviceNeeded}
+                        <div>
+                          <div className="font-medium text-gray-900">{lead.customerName}</div>
+                          {lead.companyName && (
+                            <div className="text-sm text-gray-500">{lead.companyName}</div>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">
-                          {lead.siteLocation}
-                        </div>
+                        <div className="text-sm text-gray-900">{lead.serviceNeeded}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{lead.siteLocation}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Select
-                          options={LEAD_STATUS_OPTIONS}
                           value={lead.status}
                           onChange={(value) => handleStatusChange(lead.id, value as LeadStatus)}
-                          className="w-full min-w-[130px] text-sm py-1"
+                          options={LEAD_STATUS_OPTIONS}
+                          className="min-w-[130px]"
                         />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(lead.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        {lead.status === 'won' && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleConvertToDeal(lead)}
-                            leftIcon={<ArrowRight size={16} />}
-                          >
-                            Convert to Deal
-                          </Button>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {user?.role === 'admin' ? (
+                          <Select
+                            value={lead.assignedTo || ''}
+                            onChange={(value) => handleAssignmentChange(lead.id, value)}
+                            options={[
+                              { value: '', label: 'Unassigned' },
+                              ...salesAgents.map(agent => ({
+                                value: agent.id,
+                                label: agent.name,
+                              }))
+                            ]}
+                            className="min-w-[160px]"
+                          />
+                        ) : (
+                          <div className="text-sm text-gray-900">
+                            {lead.assignedToName || 'Unassigned'}
+                          </div>
                         )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center space-x-2">
+                          {lead.status === 'won' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleConvertToDeal(lead)}
+                              leftIcon={<ArrowRight size={16} />}
+                            >
+                              Convert to Deal
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -482,6 +547,20 @@ export function LeadManagement() {
               onChange={(value) => setFormData(prev => ({ ...prev, shiftTiming: value }))}
               required
             />
+
+            {/* Only show sales agent assignment for admin users */}
+            {user?.role === 'admin' && (
+              <Select
+                label="Assign To"
+                options={salesAgents.map(agent => ({
+                  value: agent.id,
+                  label: agent.name,
+                }))}
+                value={formData.assignedTo}
+                onChange={(value) => setFormData(prev => ({ ...prev, assignedTo: value }))}
+                required
+              />
+            )}
           </div>
 
           <TextArea

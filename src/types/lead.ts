@@ -48,7 +48,8 @@ export interface Lead {
   rentalDays: number;
   shiftTiming: string;
   status: LeadStatus;
-  assignedTo: string;
+  assignedTo: string;  // ID of the sales agent
+  assignedToName?: string;  // Name of the sales agent
   createdAt: string;
   updatedAt: string;
   files?: string[];

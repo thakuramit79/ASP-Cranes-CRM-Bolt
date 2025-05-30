@@ -1,6 +1,9 @@
+export type CraneCategory = 'mobile_crane' | 'tower_crane' | 'crawler_crane' | 'pick_and_carry_crane';
+
 export interface Equipment {
   id: string;
   name: string;
+  category: CraneCategory;
   manufacturingDate: string; // YYYY-MM format
   registrationDate: string; // YYYY-MM format
   maxLiftingCapacity: number; // in tons

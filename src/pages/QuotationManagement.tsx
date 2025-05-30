@@ -21,8 +21,10 @@ import { Select } from '../components/common/Select';
 import { Modal } from '../components/common/Modal';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Toast } from '../components/common/Toast';
+import { EquipmentSelection } from '../components/EquipmentSelection';
 import { useAuthStore } from '../store/authStore';
 import { Lead } from '../types/lead';
+import { Equipment } from '../types/equipment';
 import { getLeads } from '../services/leadService';
 import { createQuotation } from '../services/quotationService';
 import { formatCurrency } from '../utils/formatters';
@@ -32,13 +34,6 @@ const ORDER_TYPES = [
   { value: 'small', label: 'Small' },
   { value: 'monthly', label: 'Monthly' },
   { value: 'yearly', label: 'Yearly' },
-];
-
-const MACHINE_TYPES = [
-  { value: 'mobile_crane', label: 'Mobile Crane' },
-  { value: 'tower_crane', label: 'Tower Crane' },
-  { value: 'crawler_crane', label: 'Crawler Crane' },
-  { value: 'pick_and_carry', label: 'Pick & Carry Crane' },
 ];
 
 const SHIFT_OPTIONS = [
@@ -80,6 +75,7 @@ export function QuotationManagement() {
   const { user } = useAuthStore();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState<{
@@ -96,6 +92,7 @@ export function QuotationManagement() {
     
     // H2 - Type of Machine
     machineType: '',
+    equipmentId: '',
     
     // H3 - Hours
     workingHours: '',
@@ -156,7 +153,7 @@ export function QuotationManagement() {
 
   useEffect(() => {
     calculateQuotation();
-  }, [formData]);
+  }, [formData, selectedEquipment]);
 
   const fetchLeads = async () => {
     try {
@@ -169,9 +166,19 @@ export function QuotationManagement() {
     }
   };
 
+  const handleEquipmentChange = (equipment: Equipment | null) => {
+    setSelectedEquipment(equipment);
+    setFormData(prev => ({
+      ...prev,
+      equipmentId: equipment?.id || '',
+    }));
+  };
+
   const calculateQuotation = () => {
+    if (!selectedEquipment) return;
+
     // Base calculations
-    const baseRate = getMachineBaseRate(formData.machineType);
+    const baseRate = selectedEquipment.baseRate;
     const workingHours = calculateWorkingHours();
     const workingCost = baseRate * workingHours;
     
@@ -231,13 +238,11 @@ export function QuotationManagement() {
     });
   };
 
-  const getMachineBaseRate = (type: string): number => {
-    switch (type) {
-      case 'mobile_crane': return 1500;
-      case 'tower_crane': return 2500;
-      case 'crawler_crane': return 3000;
-      case 'pick_and_carry': return 1200;
-      default: return 0;
+  const getDays = (): number => {
+    switch (formData.orderType) {
+      case 'monthly': return 26;
+      case 'yearly': return 312;
+      default: return Number(formData.workingHours) / 10;
     }
   };
 
@@ -246,14 +251,6 @@ export function QuotationManagement() {
     const days = getDays();
     const shiftMultiplier = formData.shift === 'double' ? 2 : 1;
     return hours * days * shiftMultiplier;
-  };
-
-  const getDays = (): number => {
-    switch (formData.orderType) {
-      case 'monthly': return 26;
-      case 'yearly': return 312;
-      default: return Number(formData.workingHours) / 10;
-    }
   };
 
   const calculateTrailerCost = (): number => {
@@ -364,14 +361,18 @@ export function QuotationManagement() {
             {/* H2 - Type of Machine */}
             <Card>
               <CardHeader>
-                <CardTitle>Machine Selection</CardTitle>
+                <CardTitle className="text-lg font-semibold">
+                  H2 - Type of Machine
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Select
-                  label="Type of Machine"
-                  options={MACHINE_TYPES}
-                  value={formData.machineType}
-                  onChange={(value) => setFormData(prev => ({ ...prev, machineType: value }))}
+              <CardContent className="space-y-4">
+                <EquipmentSelection
+                  selectedCategory={formData.machineType}
+                  selectedEquipmentId={formData.equipmentId}
+                  onCategoryChange={(category) => 
+                    setFormData(prev => ({ ...prev, machineType: category, equipmentId: '' }))
+                  }
+                  onEquipmentChange={handleEquipmentChange}
                 />
               </CardContent>
             </Card>
@@ -510,9 +511,9 @@ export function QuotationManagement() {
             </Card>
           </div>
 
-          {/* Summary Section */}
+          {/* Summary Section - Fixed on Right Side */}
           <div className="space-y-6">
-            <Card>
+            <Card className="sticky top-0">
               <CardHeader>
                 <CardTitle>Quotation Summary</CardTitle>
               </CardHeader>

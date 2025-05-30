@@ -7,7 +7,8 @@ import {
   deleteDoc,
   doc,
   serverTimestamp,
-  Timestamp 
+  Timestamp,
+  getDoc
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Equipment } from '../../types/equipment';
@@ -51,15 +52,31 @@ export const createEquipment = async (equipment: Omit<Equipment, 'id' | 'created
 export const updateEquipment = async (id: string, updates: Partial<Equipment>): Promise<Equipment> => {
   try {
     const equipmentRef = doc(db, 'equipment', id);
+    
+    // First get the current data
+    const docSnap = await getDoc(equipmentRef);
+    if (!docSnap.exists()) {
+      throw new Error('Equipment not found');
+    }
+
+    // Perform the update
     await updateDoc(equipmentRef, {
       ...updates,
       updatedAt: serverTimestamp(),
     });
 
+    // Get the updated data
+    const updatedSnap = await getDoc(equipmentRef);
+    const data = updatedSnap.data();
+    if (!data) {
+      throw new Error('Updated equipment data not found');
+    }
+
     return {
       id,
-      ...updates,
-      updatedAt: new Date().toISOString(),
+      ...data,
+      createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
+      updatedAt: new Date().toISOString(), // Use current time since serverTimestamp hasn't propagated yet
     } as Equipment;
   } catch (error) {
     console.error('Error updating equipment:', error);

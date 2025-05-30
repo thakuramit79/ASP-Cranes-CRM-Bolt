@@ -74,3 +74,34 @@ export const updateLeadStatus = async (id: string, status: LeadStatus): Promise<
     throw error;
   }
 };
+
+export const updateLeadAssignment = async (
+  leadId: string, 
+  salesAgentId: string, 
+  salesAgentName: string
+): Promise<Lead | null> => {
+  try {
+    const leadRef = doc(db, 'leads', leadId);
+    await updateDoc(leadRef, {
+      assignedTo: salesAgentId,
+      assignedToName: salesAgentName,
+      updatedAt: serverTimestamp(),
+    });
+
+    const docSnap = await getDoc(leadRef);
+    if (!docSnap.exists()) {
+      return null;
+    }
+
+    const data = docSnap.data();
+    return {
+      id: docSnap.id,
+      ...data,
+      createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
+      updatedAt: (data.updatedAt as Timestamp).toDate().toISOString(),
+    } as Lead;
+  } catch (error) {
+    console.error('Error updating lead assignment:', error);
+    throw error;
+  }
+};
